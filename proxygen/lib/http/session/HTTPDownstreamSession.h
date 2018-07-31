@@ -24,6 +24,8 @@ class HTTPDownstreamSession final: public HTTPSession {
    * @param peerAddr   Address and port of the remote end of the socket.
    * @param codec      A codec with which to parse/generate messages in
    *                     whatever HTTP-like wire format this session needs.
+   * @param pooled     If the session is pooled it won't be shutdown even if there
+   *                     are no transactions.
    */
   HTTPDownstreamSession(
       const WheelTimerInstance& timeout,
@@ -33,10 +35,11 @@ class HTTPDownstreamSession final: public HTTPSession {
       HTTPSessionController* controller,
       std::unique_ptr<HTTPCodec> codec,
       const wangle::TransportInfo& tinfo,
-      InfoCallback* infoCallback):
+      InfoCallback* infoCallback,
+      bool pooled = false):
     HTTPSession(timeout, std::move(sock), localAddr, peerAddr,
                 CHECK_NOTNULL(controller), std::move(codec), tinfo,
-                infoCallback) {
+                infoCallback, pooled) {
       CHECK_EQ(codec_->getTransportDirection(), TransportDirection::DOWNSTREAM);
   }
 
@@ -49,10 +52,11 @@ class HTTPDownstreamSession final: public HTTPSession {
       HTTPSessionController* controller,
       std::unique_ptr<HTTPCodec> codec,
       const wangle::TransportInfo& tinfo,
-      InfoCallback* infoCallback):
+      InfoCallback* infoCallback,
+      bool pooled = false):
     HTTPDownstreamSession(WheelTimerInstance(timer), std::move(sock), localAddr,
         peerAddr,CHECK_NOTNULL(controller), std::move(codec), tinfo,
-        infoCallback) {
+        infoCallback, pooled) {
   }
 
   void startNow() override;

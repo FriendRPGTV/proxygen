@@ -48,15 +48,17 @@ class HTTPConnector:
    * parameters HTTPConnector needs to keep a copy of through the
    * connection process.
    *
-   * @param callback The interface on which to receive the result.
-   *                 Whatever object is passed here MUST outlive this
-   *                 connector and MUST NOT be null.
+   * @param callback   The interface on which to receive the result.
+   *                    Whatever object is passed here MUST outlive this
+   *                    connector and MUST NOT be null.
    * @param timeoutSet The timeout set to be used for the transactions
-   *                   that are opened on the session.
+   *                    that are opened on the session.
+   * @param pooled     If the session is pooled it won't be shutdown even if there
+   *                    are no transactions.
    */
-  HTTPConnector(Callback* callback, folly::HHWheelTimer* timeoutSet);
+  HTTPConnector(Callback* callback, folly::HHWheelTimer* timeoutSet, bool pooled = false);
 
-  HTTPConnector(Callback* callback, const WheelTimerInstance& timeout);
+  HTTPConnector(Callback* callback, const WheelTimerInstance& timeout, bool pooled = false);
 
   /**
    * Clients may delete the connector at any time to cancel it. No
@@ -161,6 +163,7 @@ class HTTPConnector:
   std::string plaintextProtocol_;
   TimePoint connectStart_;
   std::unique_ptr<DefaultHTTPCodecFactory> httpCodecFactory_;
+  bool pooled_ = false;
 };
 
 }

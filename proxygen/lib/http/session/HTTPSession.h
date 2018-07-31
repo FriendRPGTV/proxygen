@@ -232,6 +232,8 @@ class HTTPSession:
    *                               level info.
    * @param InfoCallback         Optional callback to be informed of session
    *                               lifecycle events.
+   * @param pooled               If the session is pooled it won't be shutdown even if there
+   *                               are no transactions.
    */
   HTTPSession(
       const WheelTimerInstance& timeout,
@@ -241,7 +243,8 @@ class HTTPSession:
       HTTPSessionController* controller,
       std::unique_ptr<HTTPCodec> codec,
       const wangle::TransportInfo& tinfo,
-      InfoCallback* infoCallback);
+      InfoCallback* infoCallback,
+      bool pooled = false);
 
   // thrift uses WheelTimer
   HTTPSession(
@@ -252,7 +255,8 @@ class HTTPSession:
       HTTPSessionController* controller,
       std::unique_ptr<HTTPCodec> codec,
       const wangle::TransportInfo& tinfo,
-      InfoCallback* infoCallback);
+      InfoCallback* infoCallback,
+      bool pooled = false);
 
   ~HTTPSession() override;
 
@@ -1001,6 +1005,7 @@ class HTTPSession:
   bool resetSocketOnShutdown_:1;
   // indicates a fatal error that prevents further ingress data processing
   bool inLoopCallback_:1;
+  bool pooled_ = false;
 };
 
 

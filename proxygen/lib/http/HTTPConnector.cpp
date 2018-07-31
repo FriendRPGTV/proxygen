@@ -25,15 +25,17 @@ using namespace std;
 namespace proxygen {
 
 HTTPConnector::HTTPConnector(Callback* callback,
-    folly::HHWheelTimer* timeoutSet)
-    : HTTPConnector(callback, WheelTimerInstance(timeoutSet)) {
+    folly::HHWheelTimer* timeoutSet, bool pooled)
+    : HTTPConnector(callback, WheelTimerInstance(timeoutSet), pooled) {
 }
 
 HTTPConnector::HTTPConnector(Callback* callback,
-                             const WheelTimerInstance& timeout)
+                             const WheelTimerInstance& timeout,
+                             bool pooled)
     : cb_(CHECK_NOTNULL(callback))
     , timeout_(timeout)
-    , httpCodecFactory_(std::make_unique<DefaultHTTPCodecFactory>(false)) {}
+    , httpCodecFactory_(std::make_unique<DefaultHTTPCodecFactory>(false))
+    , pooled_(pooled) {}
 
 HTTPConnector::~HTTPConnector() {
   reset();
@@ -143,7 +145,7 @@ void HTTPConnector::connectSuccess() noexcept {
   HTTPUpstreamSession* session = new HTTPUpstreamSession(
     timeout_,
     std::move(socket_), localAddress, peerAddress,
-    std::move(codec), transportInfo_, nullptr);
+    std::move(codec), transportInfo_, nullptr, pooled_);
 
   cb_->connectSuccess(session);
 }

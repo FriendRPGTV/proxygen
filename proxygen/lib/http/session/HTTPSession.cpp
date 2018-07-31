@@ -108,10 +108,11 @@ HTTPSession::HTTPSession(
   HTTPSessionController* controller,
   unique_ptr<HTTPCodec> codec,
   const TransportInfo& tinfo,
-  InfoCallback* infoCallback):
+  InfoCallback* infoCallback,
+  bool pooled):
     HTTPSession(WheelTimerInstance(transactionTimeouts), std::move(sock),
         localAddr, peerAddr, controller, std::move(codec),
-        tinfo, infoCallback) {
+        tinfo, infoCallback, pooled) {
 }
 
 HTTPSession::HTTPSession(
@@ -122,7 +123,8 @@ HTTPSession::HTTPSession(
   HTTPSessionController* controller,
   unique_ptr<HTTPCodec> codec,
   const TransportInfo& tinfo,
-  InfoCallback* infoCallback):
+  InfoCallback* infoCallback,
+  bool pooled):
     HTTPSessionBase(localAddr, peerAddr, controller, tinfo, infoCallback,
                     std::move(codec), timeout),
     writeTimeout_(this),
@@ -139,7 +141,8 @@ HTTPSession::HTTPSession(
     writes_(SocketState::UNPAUSED),
     ingressUpgraded_(false),
     resetSocketOnShutdown_(false),
-    inLoopCallback_(false) {
+    inLoopCallback_(false),
+	pooled_(pooled) {
   byteEventTracker_ = std::make_shared<ByteEventTracker>(this);
   initialReceiveWindow_ = receiveStreamWindowSize_ =
     receiveSessionWindowSize_ = codec_->getDefaultWindowSize();
@@ -1739,7 +1742,7 @@ HTTPSession::detach(HTTPTransaction* txn) noexcept {
 
   // It's possible that this is the last transaction in the session,
   // so check whether the conditions for shutdown are satisfied.
-  if (transactions_.empty()) {
+  if (transactions_.empty() && !pooled_) {
     if (shouldShutdown()) {
       writesDraining_ = true;
     }

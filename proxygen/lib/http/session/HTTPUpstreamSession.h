@@ -21,6 +21,7 @@ class SPDYStats;
 
 class HTTPUpstreamSession final: public HTTPSession {
  public:
+
   /**
    * @param sock           An open socket on which any applicable TLS
    *                         handshaking has been completed already.
@@ -30,6 +31,8 @@ class HTTPUpstreamSession final: public HTTPSession {
    *                         whatever HTTP-like wire format this session needs.
    * @param maxVirtualPri  Number of virtual priority nodes to represent fixed
    *                         priority levels.
+   * @param pooled         If the session is pooled it won't be shutdown even if there
+   *                         are no transactions.
    */
   HTTPUpstreamSession(
       const WheelTimerInstance& timeout,
@@ -41,7 +44,8 @@ class HTTPUpstreamSession final: public HTTPSession {
       InfoCallback* infoCallback,
       uint8_t maxVirtualPri = 0,
       std::shared_ptr<const PriorityMapFactory> priorityMapFactory =
-          std::shared_ptr<const PriorityMapFactory>()) :
+          std::shared_ptr<const PriorityMapFactory>(),
+      bool pooled = false) :
     HTTPSession(
         timeout,
         std::move(sock),
@@ -50,7 +54,8 @@ class HTTPUpstreamSession final: public HTTPSession {
         nullptr,
         std::move(codec),
         tinfo,
-        infoCallback),
+        infoCallback,
+        pooled),
     maxVirtualPriorityLevel_(priorityMapFactory ? 0 : maxVirtualPri),
     priorityMapFactory_(priorityMapFactory) {
     if (sock_) {
@@ -60,6 +65,32 @@ class HTTPUpstreamSession final: public HTTPSession {
       }
     }
     CHECK_EQ(codec_->getTransportDirection(), TransportDirection::UPSTREAM);
+  }
+
+  // new constructor since priorityMapFactory can't be instantiated outside
+  HTTPUpstreamSession(
+      const WheelTimerInstance& timeout,
+      folly::AsyncTransportWrapper::UniquePtr&& sock,
+      const folly::SocketAddress& localAddr,
+      const folly::SocketAddress& peerAddr,
+      std::unique_ptr<HTTPCodec> codec,
+      const wangle::TransportInfo& tinfo,
+      InfoCallback* infoCallback,
+      bool pooled = false,
+      uint8_t maxVirtualPri = 0,
+      std::shared_ptr<const PriorityMapFactory> priorityMapFactory =
+          std::shared_ptr<const PriorityMapFactory>()) :
+    HTTPUpstreamSession(
+        timeout,
+        std::move(sock),
+        localAddr,
+        peerAddr,
+        std::move(codec),
+        tinfo,
+        infoCallback,
+        maxVirtualPri,
+        priorityMapFactory,
+        pooled) {
   }
 
   // uses folly::HHWheelTimer instance which is used on client side & thrift
@@ -73,7 +104,8 @@ class HTTPUpstreamSession final: public HTTPSession {
       InfoCallback* infoCallback,
       uint8_t maxVirtualPri = 0,
       std::shared_ptr<const PriorityMapFactory> priorityMapFactory =
-          std::shared_ptr<const PriorityMapFactory>()) :
+          std::shared_ptr<const PriorityMapFactory>(),
+      bool pooled = false) :
     HTTPUpstreamSession(
         WheelTimerInstance(timeout),
         std::move(sock),
@@ -83,7 +115,8 @@ class HTTPUpstreamSession final: public HTTPSession {
         tinfo,
         infoCallback,
         maxVirtualPri,
-        priorityMapFactory) {
+        priorityMapFactory,
+        pooled) {
   }
 
   using FilterIteratorFn = std::function<void(HTTPCodecFilter*)>;
