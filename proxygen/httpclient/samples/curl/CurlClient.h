@@ -78,6 +78,7 @@ class CurlClient : public proxygen::HTTPConnector::Callback,
   }
 
 protected:
+  proxygen::HTTPUpstreamSession* session_{nullptr};
   proxygen::HTTPTransaction* txn_{nullptr};
   folly::EventBase* evb_{nullptr};
   proxygen::HTTPMethod httpMethod_;

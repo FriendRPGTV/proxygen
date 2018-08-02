@@ -110,7 +110,7 @@ void CurlClient::setFlowControlSettings(int32_t recvWindow) {
 }
 
 void CurlClient::connectSuccess(HTTPUpstreamSession* session) {
-
+  session_ = session;
   if (url_.isSecure()) {
     sslHandshakeFollowup(session);
   }
